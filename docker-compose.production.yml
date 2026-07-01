@@ -1,0 +1,127 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: deployment/production/Dockerfile
+    image: poslab-app:${APP_VERSION:-latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_cache:/var/www/html/bootstrap/cache
+    networks:
+      - poslab
+
+  web:
+    build:
+      context: .
+      dockerfile: deployment/production/Nginx.Dockerfile
+    image: poslab-web:${APP_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - app_storage:/var/www/html/storage:ro
+      - nginx_certs:/etc/nginx/certs:ro
+    networks:
+      - poslab
+
+  queue:
+    image: poslab-app:${APP_VERSION:-latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - redis
+    command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=120 --max-time=3600
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_cache:/var/www/html/bootstrap/cache
+    networks:
+      - poslab
+
+  scheduler:
+    image: poslab-app:${APP_VERSION:-latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - redis
+    command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_cache:/var/www/html/bootstrap/cache
+    networks:
+      - poslab
+
+  websocket:
+    image: poslab-app:${APP_VERSION:-latest}
+    restart: unless-stopped
+    profiles:
+      - reverb
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - redis
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_cache:/var/www/html/bootstrap/cache
+    networks:
+      - poslab
+
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - poslab
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: sh -c "redis-server --appendonly yes $${REDIS_PASSWORD:+--requirepass $$REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -n \"$REDIS_PASSWORD\" ]; then redis-cli -a \"$REDIS_PASSWORD\" ping; else redis-cli ping; fi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - poslab
+
+networks:
+  poslab:
+    driver: bridge
+
+volumes:
+  app_storage:
+  app_cache:
+  postgres_data:
+  redis_data:
+  nginx_certs:

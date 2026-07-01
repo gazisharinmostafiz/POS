@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+    container_name: tong-pos-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  database:
+    image: postgres:16-alpine
+    container_name: tong-pos-database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: tong_pos
+      POSTGRES_USER: tong_pos
+      POSTGRES_PASSWORD: tong_pos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tong_pos -d tong_pos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: tong-pos-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
