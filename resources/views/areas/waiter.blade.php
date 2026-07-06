@@ -20,6 +20,26 @@
         class="min-h-screen"
     >
         <div class="mx-auto max-w-7xl px-4 py-5">
+            <nav class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900 p-3">
+                <div class="flex flex-wrap gap-2 text-sm font-bold">
+                    <a href="{{ auth()->user()->roleRedirectPath() }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Home</a>
+                    <a href="{{ route('areas.waiter') }}" class="rounded bg-cyan-400 px-4 py-2 text-slate-950">Waiter POS</a>
+                    @can('access-counter-screen')
+                        <a href="{{ route('areas.counter') }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Counter</a>
+                    @endcan
+                    @can('access-kitchen-screen')
+                        <a href="{{ route('areas.kitchen') }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Kitchen</a>
+                    @endcan
+                    @can('access-tenant-admin-area')
+                        <a href="{{ route('areas.tenant-admin') }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Admin</a>
+                    @endcan
+                </div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="rounded border border-slate-700 px-4 py-2 text-sm font-bold text-slate-100" type="submit">Log out</button>
+                </form>
+            </nav>
+
             <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <p class="text-sm font-semibold uppercase tracking-widest text-cyan-300">Waiter POS</p>

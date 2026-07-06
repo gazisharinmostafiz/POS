@@ -18,6 +18,26 @@
         class="min-h-screen"
     >
         <div class="mx-auto max-w-7xl px-4 py-5">
+            <nav class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white p-3">
+                <div class="flex flex-wrap gap-2 text-sm font-black">
+                    <a href="{{ auth()->user()->roleRedirectPath() }}" class="rounded bg-slate-100 px-4 py-2 text-slate-900">Home</a>
+                    @can('access-waiter-pos')
+                        <a href="{{ route('areas.waiter') }}" class="rounded bg-slate-100 px-4 py-2 text-slate-900">Waiter POS</a>
+                    @endcan
+                    <a href="{{ route('areas.counter') }}" class="rounded bg-slate-950 px-4 py-2 text-white">Counter</a>
+                    @can('access-kitchen-screen')
+                        <a href="{{ route('areas.kitchen') }}" class="rounded bg-slate-100 px-4 py-2 text-slate-900">Kitchen</a>
+                    @endcan
+                    @can('access-tenant-admin-area')
+                        <a href="{{ route('areas.tenant-admin') }}" class="rounded bg-slate-100 px-4 py-2 text-slate-900">Admin</a>
+                    @endcan
+                </div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="rounded border border-slate-400 px-4 py-2 text-sm font-black text-slate-900" type="submit">Log out</button>
+                </form>
+            </nav>
+
             <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <p class="text-sm font-bold uppercase tracking-widest text-slate-500">Counter / Cashier</p>

@@ -11,7 +11,7 @@
     <main id="app" class="flex min-h-screen items-center justify-center px-6">
         <section class="text-center">
             <p class="mb-4 text-sm font-semibold uppercase tracking-widest text-cyan-300">Base application stack</p>
-            <h1 class="text-4xl font-bold tracking-tight sm:text-6xl">@{{ platformName }}</h1>
+            <h1 class="text-4xl font-bold tracking-tight sm:text-6xl">Tong POS Platform</h1>
             <p class="mx-auto mt-6 max-w-xl text-base leading-7 text-slate-300">
                 Laravel, Vue 3, Tailwind CSS, PostgreSQL, Redis, and Docker are ready for platform development.
             </p>

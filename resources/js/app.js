@@ -27,7 +27,15 @@ document.addEventListener('submit', (event) => {
     }
 });
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+const isLocalHost = ['localhost', '127.0.0.1', '[::1]', '::1'].includes(window.location.hostname);
+
+if ('serviceWorker' in navigator && isLocalHost) {
+    navigator.serviceWorker.getRegistrations()
+        .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+        .catch(() => {});
+}
+
+if ('serviceWorker' in navigator && import.meta.env.PROD && !isLocalHost) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
@@ -65,18 +73,6 @@ function subscribeTenantRealtime(element, refreshCallback) {
     const interval = window.setInterval(refreshCallback, 10000);
 
     return () => window.clearInterval(interval);
-}
-
-const el = document.getElementById('app');
-
-if (el) {
-    createApp({
-        data() {
-            return {
-                platformName: 'Tong POS Platform',
-            };
-        },
-    }).mount(el);
 }
 
 const waiterPosEl = document.getElementById('waiter-pos');
