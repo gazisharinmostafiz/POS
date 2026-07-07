@@ -43,11 +43,20 @@ class RestaurantSettingsController extends Controller
             'currency_symbol' => ['required', 'string', 'max:8'],
             'currency_code' => ['required', 'string', 'size:3'],
             'service_charge_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'service_charge_enabled' => ['nullable'],
             'tax_vat_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'tax_enabled' => ['nullable'],
             'table_count' => ['required', 'integer', 'min:0', 'max:1000'],
             'invoice_footer' => ['nullable', 'string', 'max:1000'],
+            'receipt_header' => ['nullable', 'string', 'max:1000'],
+            'timezone' => ['required', 'string', 'max:64'],
+            'business_registration_number' => ['nullable', 'string', 'max:100'],
+            'default_card_provider' => ['required', 'in:external_card,teya,worldpay'],
             'theme_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
+
+        $data['tax_enabled'] = $request->boolean('tax_enabled');
+        $data['service_charge_enabled'] = $request->boolean('service_charge_enabled');
 
         if ($request->hasFile('logo')) {
             $data['logo_upload_path'] = $request->file('logo')->store("tenant-logos/{$tenant->id}", 'public');

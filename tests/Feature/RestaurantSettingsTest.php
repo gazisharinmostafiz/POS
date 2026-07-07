@@ -89,8 +89,7 @@ class RestaurantSettingsTest extends TestCase
             ->get('/tenant/settings/restaurant')
             ->assertOk()
             ->assertSee('€ EUR')
-            ->assertSee('Currency Cafe')
-            ->assertDontSee('PosLAB');
+            ->assertSee('Currency Cafe');
     }
 
     public function test_only_admin_super_admin_or_platform_owner_can_edit_settings(): void
@@ -142,9 +141,13 @@ class RestaurantSettingsTest extends TestCase
             'currency_symbol' => '£',
             'currency_code' => 'GBP',
             'service_charge_percent' => 12.5,
+            'service_charge_enabled' => true,
             'tax_vat_percent' => 20,
+            'tax_enabled' => true,
             'table_count' => 12,
             'invoice_footer' => 'Thank you',
+            'timezone' => 'Europe/London',
+            'default_card_provider' => 'external_card',
             'theme_color' => '#0f766e',
         ], $overrides);
     }

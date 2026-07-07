@@ -15,6 +15,7 @@ use App\Http\Controllers\Tenant\ChatMessageController;
 use App\Http\Controllers\Tenant\DashboardReportController;
 use App\Http\Controllers\Tenant\MenuCategoryController;
 use App\Http\Controllers\Tenant\MenuItemController;
+use App\Http\Controllers\Tenant\PaymentProviderController;
 use App\Http\Controllers\Tenant\PrinterController;
 use App\Http\Controllers\Tenant\RestaurantSettingsController;
 use App\Http\Controllers\Tenant\ReleaseNoteController as TenantReleaseNoteController;
@@ -158,6 +159,19 @@ Route::middleware('auth')->group(function () {
         ->middleware(['tenant.required', 'role:'.Roles::ADMIN.','.Roles::SUPER_ADMIN])
         ->can('access-tenant-admin-area')
         ->name('tenant.settings.restaurant.update');
+
+    Route::prefix('tenant/settings/payment-providers')
+        ->name('tenant.settings.payment-providers.')
+        ->middleware(['tenant.required', 'role:'.Roles::ADMIN.','.Roles::SUPER_ADMIN, 'can:access-tenant-admin-area'])
+        ->group(function () {
+            Route::get('/', [PaymentProviderController::class, 'index'])->name('index');
+            Route::get('/create', [PaymentProviderController::class, 'create'])->name('create');
+            Route::post('/', [PaymentProviderController::class, 'store'])->name('store');
+            Route::get('/{providerAccount}/edit', [PaymentProviderController::class, 'edit'])->name('edit');
+            Route::put('/{providerAccount}', [PaymentProviderController::class, 'update'])->name('update');
+            Route::delete('/{providerAccount}', [PaymentProviderController::class, 'destroy'])->name('destroy');
+            Route::patch('/{providerAccount}/toggle', [PaymentProviderController::class, 'toggle'])->name('toggle');
+        });
 
     Route::prefix('tenant/menu')
         ->name('tenant.menu.')

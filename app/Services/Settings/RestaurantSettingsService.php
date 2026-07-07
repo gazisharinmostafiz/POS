@@ -23,9 +23,15 @@ class RestaurantSettingsService
             'currency_symbol' => '£',
             'currency_code' => 'GBP',
             'service_charge_percent' => 0,
+            'service_charge_enabled' => true,
             'tax_vat_percent' => 0,
+            'tax_enabled' => true,
             'table_count' => 0,
             'invoice_footer' => null,
+            'receipt_header' => null,
+            'timezone' => config('app.timezone', 'UTC'),
+            'business_registration_number' => null,
+            'default_card_provider' => 'external_card',
             'theme_color' => '#0f172a',
         ];
     }

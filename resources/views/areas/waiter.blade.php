@@ -1,160 +1,134 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Waiter POS</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-slate-950 text-slate-100 antialiased">
-    <main
-        id="waiter-pos"
-        data-component="waiter-pos"
-        data-data-url="{{ route('waiter.pos.data') }}"
-        data-order-url="{{ route('waiter.pos.orders.store') }}"
-        data-addon-url="{{ route('waiter.pos.orders.addon') }}"
-        data-active-order-url-template="{{ url('/waiter/pos/tables/__TABLE__/active-order') }}"
-        data-tenant-id="{{ current_tenant()->id }}"
-        data-branch-id="{{ current_branch()?->id }}"
-        class="min-h-screen"
-    >
-        <div class="mx-auto max-w-7xl px-4 py-5">
-            <nav class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900 p-3">
-                <div class="flex flex-wrap gap-2 text-sm font-bold">
-                    <a href="{{ auth()->user()->roleRedirectPath() }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Home</a>
-                    <a href="{{ route('areas.waiter') }}" class="rounded bg-cyan-400 px-4 py-2 text-slate-950">Waiter POS</a>
-                    @can('access-counter-screen')
-                        <a href="{{ route('areas.counter') }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Counter</a>
-                    @endcan
-                    @can('access-kitchen-screen')
-                        <a href="{{ route('areas.kitchen') }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Kitchen</a>
-                    @endcan
-                    @can('access-tenant-admin-area')
-                        <a href="{{ route('areas.tenant-admin') }}" class="rounded bg-slate-800 px-4 py-2 text-slate-100">Admin</a>
-                    @endcan
-                </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="rounded border border-slate-700 px-4 py-2 text-sm font-bold text-slate-100" type="submit">Log out</button>
-                </form>
-            </nav>
+@extends('layouts.tenant-app', [
+    'pageTitle' => 'Waiter POS',
+    'activeNav' => 'waiter',
+    'bodyClass' => 'pos-theme-dark',
+])
 
-            <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-widest text-cyan-300">Waiter POS</p>
-                    <h1 class="text-3xl font-bold">Order screen</h1>
-                </div>
-                <button type="button" class="min-h-12 rounded-lg border border-slate-700 px-5 py-3 text-base font-semibold" @click="chatPlaceholder = true">
-                    Quick chat
+@section('content')
+<div
+    id="waiter-pos"
+    data-component="waiter-pos"
+    data-data-url="{{ route('waiter.pos.data') }}"
+    data-order-url="{{ route('waiter.pos.orders.store') }}"
+    data-addon-url="{{ route('waiter.pos.orders.addon') }}"
+    data-active-order-url-template="{{ url('/waiter/pos/tables/__TABLE__/active-order') }}"
+    data-tenant-id="{{ current_tenant()->id }}"
+    data-branch-id="{{ current_branch()?->id }}"
+    class="pos-page min-h-screen"
+>
+    <header class="pos-page-header">
+        <div>
+            <p class="pos-page-eyebrow">Operations</p>
+            <h1 class="pos-page-title">Waiter POS</h1>
+            <p class="pos-page-subtitle">Take orders, manage tables, and send tickets to kitchen.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="pos-live-badge">
+                <span class="pos-live-dot" :class="realtimeDotClass"></span>
+                @{{ realtimeLabel }}
+            </div>
+            <span class="pos-badge-neutral">@{{ sourceLabel }}</span>
+        </div>
+    </header>
+
+    <div v-if="loading" class="pos-alert-info mb-4">Loading tables and menu…</div>
+    <div v-if="notice" class="pos-alert-success mb-4">@{{ notice }}</div>
+    <div v-if="error" class="pos-alert-error mb-4">@{{ error }}</div>
+
+    <div class="pos-waiter-layout">
+        <aside class="pos-dark-card p-4 xl:sticky xl:top-6 xl:self-start">
+            <h2 class="mb-3 text-sm font-bold uppercase tracking-wider text-slate-400">Order type</h2>
+            <div class="mb-5 grid gap-2">
+                <button type="button" class="pos-btn-touch w-full" :class="sourceType === sourceTypes.takeaway ? 'pos-btn-accent' : 'pos-btn-secondary'" @click="selectSource('takeaway')">Takeaway</button>
+                <button type="button" class="pos-btn-touch w-full" :class="sourceType === sourceTypes.walkIn ? 'pos-btn-accent' : 'pos-btn-secondary'" @click="selectSource('walk_in')">Walk-in</button>
+            </div>
+
+            <h2 class="mb-3 text-sm font-bold uppercase tracking-wider text-slate-400">Tables</h2>
+            <div v-if="!loading && tables.length === 0" class="pos-empty-dark text-xs">No tables configured.</div>
+            <div class="grid grid-cols-2 gap-2">
+                <button
+                    v-for="table in tables"
+                    :key="table.id"
+                    type="button"
+                    class="pos-table-btn"
+                    :class="sourceType === 'table' && tableNumber === table.number ? 'pos-table-btn-active' : 'pos-table-btn-idle'"
+                    @click="selectTable(table)"
+                >
+                    <span class="block text-base font-bold">@{{ table.label || ('T' + table.number) }}</span>
+                    <span class="pos-badge mt-2" :class="statusBadgeClass(table.status)">@{{ table.status }}</span>
                 </button>
-            </header>
+            </div>
+        </aside>
 
-            <div v-if="loading" class="mb-4 rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 text-slate-300">Loading tables and menu...</div>
-            <div v-if="notice" class="mb-4 rounded-lg border border-emerald-700 bg-emerald-950 px-4 py-3 text-emerald-200">@{{ notice }}</div>
-            <div v-if="error" class="mb-4 rounded-lg border border-red-700 bg-red-950 px-4 py-3 text-red-200">@{{ error }}</div>
-            <div v-if="chatPlaceholder" class="mb-4 rounded-lg border border-cyan-700 bg-cyan-950 px-4 py-3 text-cyan-100">Quick chat placeholder for future staff messaging.</div>
-
-            <section class="mb-5 rounded-lg border border-slate-800 bg-slate-900 p-4">
-                <div class="mb-3 flex flex-wrap gap-3">
-                    <button type="button" class="min-h-14 rounded-lg px-5 py-3 text-base font-semibold" :class="sourceType === 'takeaway' ? selectedClass : neutralClass" @click="selectSource('takeaway')">Takeaway</button>
-                    <button type="button" class="min-h-14 rounded-lg px-5 py-3 text-base font-semibold" :class="sourceType === 'walk_in' ? selectedClass : neutralClass" @click="selectSource('walk_in')">Walk-in</button>
+        <section class="pos-dark-card flex flex-col overflow-hidden">
+            <div class="pos-card-header border-slate-800">
+                <h2 class="font-bold text-white">Menu</h2>
+                <input v-model="search" type="search" class="pos-field-dark max-w-xs" placeholder="Search items…">
+            </div>
+            <div class="pos-card-body flex-1 pos-scroll">
+                <div class="mb-4 flex flex-wrap gap-2">
+                    <button type="button" class="pos-btn-tab" :class="selectedCategoryId === null ? 'pos-btn-tab-active' : 'pos-btn-tab-inactive'" @click="selectedCategoryId = null">All</button>
+                    <button
+                        v-for="category in categories"
+                        :key="category.id"
+                        type="button"
+                        class="pos-btn-tab"
+                        :class="selectedCategoryId === category.id ? 'pos-btn-tab-active' : 'pos-btn-tab-inactive'"
+                        @click="selectedCategoryId = category.id"
+                    >@{{ category.name }}</button>
                 </div>
 
-                <h2 class="mb-3 text-lg font-semibold">Tables</h2>
-                <div v-if="!loading && tables.length === 0" class="pos-empty-dark">No active tables are configured. Use Takeaway or Walk-in, or ask an admin to update table count.</div>
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-                    <button
-                        v-for="table in tables"
-                        :key="table.id"
-                        type="button"
-                        class="min-h-20 rounded-lg border p-3 text-left"
-                        :class="sourceType === 'table' && tableNumber === table.number ? 'border-cyan-300 bg-cyan-950' : 'border-slate-700 bg-slate-950'"
-                        @click="selectTable(table)"
-                    >
-                        <span class="block text-lg font-bold">@{{ table.label || ('Table ' + table.number) }}</span>
-                        <span class="mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold" :class="statusClass(table.status)">@{{ table.status }}</span>
+                <div v-if="!loading && filteredMenuItems.length === 0" class="pos-empty-dark">No items match your search.</div>
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <button v-for="item in filteredMenuItems" :key="item.id" type="button" class="group pos-menu-item" data-menu-card @click="addToCart(item)">
+                        <span class="text-base font-bold text-white">@{{ item.name }}</span>
+                        <span class="mt-1 line-clamp-2 text-sm text-slate-400">@{{ item.description || 'Tap to add' }}</span>
+                        <span class="mt-auto flex items-center justify-between pt-4">
+                            <span class="text-xl font-bold text-accent-400">@{{ formatMoney(item.price) }}</span>
+                            <span class="pos-menu-item-add">+</span>
+                        </span>
                     </button>
                 </div>
-            </section>
-
-            <div class="grid gap-5 lg:grid-cols-[1fr_360px]">
-                <section class="rounded-lg border border-slate-800 bg-slate-900 p-4">
-                    <div class="mb-4 flex flex-wrap items-center gap-3">
-                        <button type="button" class="min-h-12 rounded-lg px-4 py-3 text-base font-semibold" :class="selectedCategoryId === null ? selectedClass : neutralClass" @click="selectedCategoryId = null">All</button>
-                        <button
-                            v-for="category in categories"
-                            :key="category.id"
-                            type="button"
-                            class="min-h-12 rounded-lg px-4 py-3 text-base font-semibold"
-                            :class="selectedCategoryId === category.id ? selectedClass : neutralClass"
-                            @click="selectedCategoryId = category.id"
-                        >
-                            @{{ category.name }}
-                        </button>
-                    </div>
-
-                    <div class="mb-4 flex gap-2">
-                        <input v-model="search" type="search" class="min-h-12 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-4 text-base" placeholder="Search menu">
-                        <button type="button" class="min-h-12 rounded-lg border border-slate-700 px-4 font-semibold" @click="search = ''">Clear</button>
-                    </div>
-
-                    <div v-if="!loading && filteredMenuItems.length === 0" class="pos-empty-dark">No menu items match the current search and category.</div>
-                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        <button
-                            v-for="item in filteredMenuItems"
-                            :key="item.id"
-                            type="button"
-                            class="min-h-36 rounded-lg border border-slate-800 bg-slate-950 p-4 text-left shadow-sm transition hover:border-cyan-400"
-                            @click="addToCart(item)"
-                            data-menu-card
-                        >
-                            <span class="block text-lg font-bold">@{{ item.name }}</span>
-                            <span class="mt-2 block text-sm text-slate-400">@{{ item.description || 'No description' }}</span>
-                            <span class="mt-4 flex items-center justify-between">
-                                <span class="text-xl font-bold">@{{ formatMoney(item.price) }}</span>
-                                <span class="min-h-12 rounded-lg bg-cyan-400 px-4 py-3 font-bold text-slate-950" @click.stop="addToCart(item)">+</span>
-                            </span>
-                        </button>
-                    </div>
-                </section>
-
-                <aside class="rounded-lg border border-slate-800 bg-slate-900 p-4">
-                    <h2 class="text-xl font-bold">Cart</h2>
-                    <p class="mt-1 text-sm text-slate-400">@{{ sourceLabel }}</p>
-
-                    <div class="mt-4 space-y-3">
-                        <p v-if="cart.length === 0" class="pos-empty-dark">Cart is empty. Tap any menu item card to add it.</p>
-                        <div v-for="line in cart" :key="line.id" class="rounded-lg border border-slate-800 bg-slate-950 p-3">
-                            <div class="flex justify-between gap-3">
-                                <div>
-                                    <p class="font-semibold">@{{ line.name }}</p>
-                                    <p class="text-sm text-slate-400">@{{ formatMoney(line.price) }}</p>
-                                </div>
-                                <button type="button" class="min-h-11 rounded border border-red-700 px-3 text-red-200" @click="removeFromCart(line.id)">Remove</button>
-                            </div>
-                            <div class="mt-3 flex items-center gap-3">
-                                <button type="button" class="min-h-12 min-w-12 rounded bg-slate-800 text-xl font-bold" @click="decreaseQuantity(line.id)">-</button>
-                                <span class="min-w-10 text-center text-lg font-bold">@{{ line.quantity }}</span>
-                                <button type="button" class="min-h-12 min-w-12 rounded bg-slate-800 text-xl font-bold" @click="increaseQuantity(line.id)">+</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <textarea v-model="kitchenNote" class="mt-4 min-h-24 w-full rounded-lg border border-slate-700 bg-slate-950 p-3" placeholder="Kitchen note"></textarea>
-
-                    <div class="mt-4 flex items-center justify-between text-xl font-bold">
-                        <span>Total</span>
-                        <span>@{{ formatMoney(cartTotal) }}</span>
-                    </div>
-
-                    <button type="button" class="mt-4 min-h-14 w-full rounded-lg bg-cyan-400 px-5 py-3 text-lg font-bold text-slate-950 disabled:opacity-50" :disabled="sending || cart.length === 0" @click="sendToKitchen(false)">@{{ sending ? 'Sending...' : 'Send to kitchen' }}</button>
-                    <button type="button" class="mt-3 min-h-14 w-full rounded-lg border border-slate-700 px-5 py-3 text-lg font-bold" @click="saveHold">Save / hold</button>
-                    <button type="button" class="mt-3 min-h-14 w-full rounded-lg bg-amber-400 px-5 py-3 text-lg font-bold text-slate-950 disabled:opacity-50" :disabled="sending || !canAddon" @click="sendToKitchen(true)">@{{ sending ? 'Sending...' : 'Send add-on order' }}</button>
-                </aside>
             </div>
-        </div>
-    </main>
+        </section>
+
+        <aside class="pos-cart-panel xl:sticky xl:top-6 xl:self-start">
+            <div class="pos-card-header border-slate-800">
+                <div>
+                    <h2 class="font-bold text-white">Current order</h2>
+                    <p class="text-xs text-slate-400">@{{ cart.length }} item(s)</p>
+                </div>
+                <span class="text-2xl font-bold text-accent-400">@{{ formatMoney(cartTotal) }}</span>
+            </div>
+            <div class="pos-card-body flex flex-col pos-scroll max-h-[50vh] xl:max-h-[calc(100vh-20rem)]">
+                <p v-if="cart.length === 0" class="pos-empty-dark text-xs">Tap menu items to build an order.</p>
+                <div v-for="line in cart" :key="line.id" class="pos-cart-line mb-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="font-semibold text-white">@{{ line.name }}</p>
+                            <p class="text-sm text-slate-400">@{{ formatMoney(line.price) }} each</p>
+                        </div>
+                        <button type="button" class="pos-btn-danger px-3 py-1.5 text-xs" @click="removeFromCart(line.id)">Remove</button>
+                    </div>
+                    <div class="mt-3 flex items-center gap-3">
+                        <button type="button" class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-800 text-xl font-bold" @click="decreaseQuantity(line.id)">−</button>
+                        <span class="min-w-8 text-center text-lg font-bold">@{{ line.quantity }}</span>
+                        <button type="button" class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-800 text-xl font-bold" @click="increaseQuantity(line.id)">+</button>
+                        <span class="ml-auto font-bold text-white">@{{ formatMoney(line.price * line.quantity) }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-slate-800 p-4">
+                <textarea v-model="kitchenNote" class="pos-field-dark mb-4 min-h-20" placeholder="Kitchen note (optional)"></textarea>
+                <button type="button" class="pos-btn-accent pos-btn-touch-xl mb-2 w-full" :disabled="sending || cart.length === 0" @click="sendToKitchen(false)">@{{ sending ? 'Sending…' : 'Send to kitchen' }}</button>
+                <button type="button" class="pos-btn-secondary pos-btn-touch w-full mb-2" @click="saveHold">Hold order</button>
+                <button type="button" class="pos-btn-secondary pos-btn-touch w-full" :disabled="sending || !canAddon" @click="sendToKitchen(true)">@{{ sending ? 'Sending…' : 'Send add-on' }}</button>
+            </div>
+        </aside>
+    </div>
+</div>
+@endsection
+
+@push('after-body')
     @include('partials.internal-chat')
-</body>
-</html>
+@endpush

@@ -45,6 +45,11 @@ class Tenant extends Model
         return $this->hasMany(TenantSetting::class);
     }
 
+    public function providerAccountSettings(): HasMany
+    {
+        return $this->hasMany(ProviderAccountSetting::class);
+    }
+
     public function categories(): HasMany
     {
         return $this->hasMany(Category::class);

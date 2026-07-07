@@ -55,7 +55,7 @@ function subscribeTenantRealtime(element, refreshCallback) {
     const tenantId = element?.dataset.tenantId;
 
     if (!tenantId || typeof refreshCallback !== 'function') {
-        return null;
+        return { unsubscribe: null, mode: 'offline' };
     }
 
     if (window.Echo) {
@@ -65,20 +65,67 @@ function subscribeTenantRealtime(element, refreshCallback) {
             channel.listen(eventName, refreshCallback);
         });
 
-        return () => {
-            window.Echo.leave(`tenant.${tenantId}`);
+        return {
+            mode: 'live',
+            unsubscribe: () => window.Echo.leave(`tenant.${tenantId}`),
         };
     }
 
     const interval = window.setInterval(refreshCallback, 10000);
 
-    return () => window.clearInterval(interval);
+    return {
+        mode: 'polling',
+        unsubscribe: () => window.clearInterval(interval),
+    };
 }
+
+const realtimeMixin = {
+    data() {
+        return {
+            realtimeMode: 'offline',
+            unsubscribeRealtime: null,
+        };
+    },
+
+    computed: {
+        realtimeDotClass() {
+            if (this.realtimeMode === 'live') {
+                return 'pos-live-dot';
+            }
+
+            if (this.realtimeMode === 'polling') {
+                return 'pos-live-dot pos-live-dot-polling';
+            }
+
+            return 'pos-live-dot pos-live-dot-offline';
+        },
+
+        realtimeLabel() {
+            if (this.realtimeMode === 'live') {
+                return 'Live sync';
+            }
+
+            if (this.realtimeMode === 'polling') {
+                return 'Auto-refresh';
+            }
+
+            return 'Offline';
+        },
+    },
+
+    beforeUnmount() {
+        if (this.unsubscribeRealtime) {
+            this.unsubscribeRealtime();
+        }
+    },
+};
 
 const waiterPosEl = document.getElementById('waiter-pos');
 
 if (waiterPosEl?.dataset.component === 'waiter-pos') {
     createApp({
+        mixins: [realtimeMixin],
+
         data() {
             return {
                 categories: [],
@@ -99,10 +146,6 @@ if (waiterPosEl?.dataset.component === 'waiter-pos') {
                 currencySymbol: '£',
                 notice: '',
                 error: '',
-                chatPlaceholder: false,
-                selectedClass: 'bg-cyan-400 text-slate-950 border border-cyan-300',
-                neutralClass: 'bg-slate-950 text-slate-100 border border-slate-700',
-                unsubscribeRealtime: null,
                 loading: true,
                 sending: false,
             };
@@ -129,14 +172,14 @@ if (waiterPosEl?.dataset.component === 'waiter-pos') {
 
             sourceLabel() {
                 if (this.sourceType === this.sourceTypes.takeaway) {
-                    return 'Takeaway order';
+                    return 'Takeaway';
                 }
 
                 if (this.sourceType === this.sourceTypes.walkIn) {
-                    return 'Walk-in order';
+                    return 'Walk-in';
                 }
 
-                return this.tableNumber ? `Table ${this.tableNumber}` : 'Select a table';
+                return this.tableNumber ? `Table ${this.tableNumber}` : 'Select table';
             },
 
             selectedTable() {
@@ -157,13 +200,9 @@ if (waiterPosEl?.dataset.component === 'waiter-pos') {
 
         mounted() {
             this.loadData();
-            this.unsubscribeRealtime = subscribeTenantRealtime(waiterPosEl, () => this.loadData());
-        },
-
-        beforeUnmount() {
-            if (this.unsubscribeRealtime) {
-                this.unsubscribeRealtime();
-            }
+            const subscription = subscribeTenantRealtime(waiterPosEl, () => this.loadData());
+            this.realtimeMode = subscription.mode;
+            this.unsubscribeRealtime = subscription.unsubscribe;
         },
 
         methods: {
@@ -224,18 +263,18 @@ if (waiterPosEl?.dataset.component === 'waiter-pos') {
                 }
             },
 
-            statusClass(status) {
+            statusBadgeClass(status) {
                 const classes = {
-                    free: 'bg-emerald-900 text-emerald-200',
-                    occupied: 'bg-amber-900 text-amber-100',
-                    order_sent: 'bg-cyan-900 text-cyan-100',
-                    cooking: 'bg-orange-900 text-orange-100',
-                    ready: 'bg-lime-900 text-lime-100',
-                    pending_bill: 'bg-fuchsia-900 text-fuchsia-100',
-                    paid: 'bg-slate-700 text-slate-200',
+                    free: 'pos-badge-success',
+                    occupied: 'pos-badge-warning',
+                    order_sent: 'pos-badge-neutral',
+                    cooking: 'pos-badge-warning',
+                    ready: 'pos-badge-success',
+                    pending_bill: 'pos-badge-danger',
+                    paid: 'pos-badge-neutral',
                 };
 
-                return classes[status] || 'bg-slate-700 text-slate-200';
+                return classes[status] || 'pos-badge-neutral';
             },
 
             formatMoney(value) {
@@ -344,6 +383,8 @@ const kitchenDisplayEl = document.getElementById('kitchen-display');
 
 if (kitchenDisplayEl?.dataset.component === 'kitchen-display') {
     createApp({
+        mixins: [realtimeMixin],
+
         data() {
             return {
                 groupedTickets: {
@@ -358,11 +399,18 @@ if (kitchenDisplayEl?.dataset.component === 'kitchen-display') {
                 ],
                 now: Date.now(),
                 timerHandle: null,
-                unsubscribeRealtime: null,
                 loading: true,
                 updatingTicketId: null,
                 error: '',
             };
+        },
+
+        computed: {
+            hasTickets() {
+                return ['pending', 'cooking', 'ready'].some(
+                    (status) => (this.groupedTickets[status] || []).length > 0,
+                );
+            },
         },
 
         mounted() {
@@ -370,16 +418,14 @@ if (kitchenDisplayEl?.dataset.component === 'kitchen-display') {
             this.timerHandle = window.setInterval(() => {
                 this.now = Date.now();
             }, 1000);
-            this.unsubscribeRealtime = subscribeTenantRealtime(kitchenDisplayEl, () => this.loadTickets());
+            const subscription = subscribeTenantRealtime(kitchenDisplayEl, () => this.loadTickets());
+            this.realtimeMode = subscription.mode;
+            this.unsubscribeRealtime = subscription.unsubscribe;
         },
 
         beforeUnmount() {
             if (this.timerHandle) {
                 window.clearInterval(this.timerHandle);
-            }
-
-            if (this.unsubscribeRealtime) {
-                this.unsubscribeRealtime();
             }
         },
 
@@ -402,6 +448,16 @@ if (kitchenDisplayEl?.dataset.component === 'kitchen-display') {
                 return this.groupedTickets[status] || [];
             },
 
+            isUrgent(ticket) {
+                if (!ticket.created_at) {
+                    return false;
+                }
+
+                const minutes = (this.now - Date.parse(ticket.created_at)) / 60000;
+
+                return minutes >= 15 && ticket.status !== 'ready';
+            },
+
             sourceLabel(order) {
                 if (order.source_type === 'table') {
                     return `Table ${order.table_number}`;
@@ -416,7 +472,7 @@ if (kitchenDisplayEl?.dataset.component === 'kitchen-display') {
 
             elapsed(createdAt) {
                 if (!createdAt) {
-                    return '0m';
+                    return '0:00';
                 }
 
                 const seconds = Math.max(0, Math.floor((this.now - Date.parse(createdAt)) / 1000));
@@ -424,7 +480,7 @@ if (kitchenDisplayEl?.dataset.component === 'kitchen-display') {
                 const remainingSeconds = seconds % 60;
 
                 if (minutes < 60) {
-                    return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+                    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
                 }
 
                 const hours = Math.floor(minutes / 60);
@@ -455,6 +511,8 @@ const counterBillingEl = document.getElementById('counter-billing');
 
 if (counterBillingEl?.dataset.component === 'counter-billing') {
     createApp({
+        mixins: [realtimeMixin],
+
         data() {
             return {
                 orders: [],
@@ -476,7 +534,6 @@ if (counterBillingEl?.dataset.component === 'counter-billing') {
                     cardAmount: null,
                     result: null,
                 },
-                unsubscribeRealtime: null,
                 loading: true,
                 processing: false,
                 filters: [
@@ -521,22 +578,18 @@ if (counterBillingEl?.dataset.component === 'counter-billing') {
                 }
 
                 if (this.bill.source_type === 'table') {
-                    return `Table ${this.bill.table_number} combined bill`;
+                    return `Table ${this.bill.table_number}`;
                 }
 
-                return this.bill.source_type === 'takeaway' ? 'Takeaway bill' : 'Walk-in bill';
+                return this.bill.source_type === 'takeaway' ? 'Takeaway' : 'Walk-in';
             },
         },
 
         mounted() {
             this.loadOrders();
-            this.unsubscribeRealtime = subscribeTenantRealtime(counterBillingEl, () => this.loadOrders());
-        },
-
-        beforeUnmount() {
-            if (this.unsubscribeRealtime) {
-                this.unsubscribeRealtime();
-            }
+            const subscription = subscribeTenantRealtime(counterBillingEl, () => this.loadOrders());
+            this.realtimeMode = subscription.mode;
+            this.unsubscribeRealtime = subscription.unsubscribe;
         },
 
         methods: {
@@ -671,10 +724,29 @@ if (counterBillingEl?.dataset.component === 'counter-billing') {
     }).mount(counterBillingEl);
 }
 
+const tenantDashboardEl = document.getElementById('tenant-dashboard');
+
+if (tenantDashboardEl?.dataset.component === 'tenant-dashboard') {
+    createApp({
+        mixins: [realtimeMixin],
+
+        mounted() {
+            const subscription = subscribeTenantRealtime(tenantDashboardEl, () => {
+                // Dashboard tables are server-rendered; live badge reflects sync readiness.
+                // Full page refresh on major events keeps analytics accurate without heavy client state.
+            });
+            this.realtimeMode = subscription.mode;
+            this.unsubscribeRealtime = subscription.unsubscribe;
+        },
+    }).mount(tenantDashboardEl);
+}
+
 const internalChatEl = document.getElementById('internal-chat');
 
 if (internalChatEl?.dataset.component === 'internal-chat') {
     createApp({
+        mixins: [realtimeMixin],
+
         data() {
             return {
                 open: false,
@@ -682,7 +754,6 @@ if (internalChatEl?.dataset.component === 'internal-chat') {
                 activeRoom: null,
                 messages: [],
                 newMessage: '',
-                unsubscribeRealtime: null,
                 error: '',
             };
         },
@@ -695,7 +766,7 @@ if (internalChatEl?.dataset.component === 'internal-chat') {
 
         mounted() {
             this.loadRooms();
-            this.unsubscribeRealtime = subscribeTenantRealtime(internalChatEl, (payload) => {
+            const subscription = subscribeTenantRealtime(internalChatEl, (payload) => {
                 if (!payload) {
                     this.loadRooms();
                     return;
@@ -711,12 +782,8 @@ if (internalChatEl?.dataset.component === 'internal-chat') {
                     this.loadMessages(payload.room);
                 }
             });
-        },
-
-        beforeUnmount() {
-            if (this.unsubscribeRealtime) {
-                this.unsubscribeRealtime();
-            }
+            this.realtimeMode = subscription.mode;
+            this.unsubscribeRealtime = subscription.unsubscribe;
         },
 
         methods: {

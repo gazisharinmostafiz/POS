@@ -1,46 +1,83 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $user->exists ? 'Edit user' : 'Create user' }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-slate-100 text-slate-950 antialiased">
-    <main class="mx-auto max-w-3xl px-4 py-6">
-        <h1 class="mb-6 text-3xl font-black">{{ $user->exists ? 'Edit user' : 'Create user' }}</h1>
+@extends(request()->routeIs('platform.*') ? 'platform.layout' : 'layouts.tenant-app', request()->routeIs('platform.*') ? [] : [
+    'pageTitle' => $user->exists ? 'Edit User' : 'Create User',
+    'activeNav' => 'users',
+    'bodyClass' => 'pos-theme-light',
+])
 
-        @if ($errors->any())
-            <div class="mb-4 rounded bg-red-100 px-4 py-3 font-bold text-red-900">{{ $errors->first() }}</div>
-        @endif
+@if (request()->routeIs('platform.*'))
+    @section('title', $user->exists ? 'Edit User' : 'Create User')
+@endif
 
-        <form method="POST" action="{{ $action }}" data-loading-text="Saving..." class="rounded-lg border border-slate-300 bg-white p-4">
-            @csrf
-            @if ($method !== 'POST') @method($method) @endif
+@section('content')
+<div class="pos-page max-w-2xl">
+    @include('partials.admin-page-header', [
+        'eyebrow' => 'Administration',
+        'title' => $user->exists ? 'Edit team member' : 'Add team member',
+        'showHome' => ! request()->routeIs('platform.*'),
+        'backUrl' => $scope['platform'] ? ($scope['tenant'] ? route('platform.vendors.users.index', $scope['tenant']) : route('platform.users.index')) : route('tenant.users.index'),
+        'backLabel' => 'All users',
+    ])
 
-            <div class="grid gap-4">
-                <label class="block"><span class="font-bold">Name</span><input name="name" value="{{ old('name', $user->name) }}" class="pos-field mt-1" required></label>
-                <label class="block"><span class="font-bold">Email</span><input name="email" type="email" value="{{ old('email', $user->email) }}" class="pos-field mt-1" required></label>
-                @if (! $user->exists)
-                    <label class="block"><span class="font-bold">Password</span><input name="password" type="password" class="pos-field mt-1" required></label>
-                @endif
-                @if ($scope['platform'])
-                    <label class="block"><span class="font-bold">Tenant</span><select name="tenant_id" class="pos-field mt-1"><option value="">Platform user</option>@foreach($tenants as $tenant)<option value="{{ $tenant->id }}" @selected(old('tenant_id', $user->tenant_id) == $tenant->id)>{{ $tenant->name }}</option>@endforeach</select></label>
-                @endif
-                <label class="block"><span class="font-bold">Role</span><select name="role" class="pos-field mt-1">@foreach($roles as $role)<option value="{{ $role }}" @selected(old('role', $user->role) === $role)>{{ $role }}</option>@endforeach</select></label>
-                <label class="inline-flex items-center gap-2 font-bold"><input name="is_active" type="checkbox" value="1" @checked(old('is_active', $user->is_active ?? true))> Active</label>
+    @include('partials.admin-flash')
+
+    <form method="POST" action="{{ $action }}" data-loading-text="Saving…" class="pos-card p-6">
+        @csrf
+        @if ($method !== 'POST') @method($method) @endif
+
+        <div class="grid gap-4">
+            <label class="block">
+                <span class="pos-label">Full name</span>
+                <input name="name" value="{{ old('name', $user->name) }}" class="pos-field mt-1.5" required>
+            </label>
+            <label class="block">
+                <span class="pos-label">Email</span>
+                <input name="email" type="email" value="{{ old('email', $user->email) }}" class="pos-field mt-1.5" required>
+            </label>
+            @if (! $user->exists)
+                <label class="block">
+                    <span class="pos-label">Password</span>
+                    <input name="password" type="password" class="pos-field mt-1.5" required>
+                </label>
+            @endif
+            @if ($scope['platform'])
+                <label class="block">
+                    <span class="pos-label">Tenant</span>
+                    <select name="tenant_id" class="pos-field mt-1.5">
+                        <option value="">Platform user</option>
+                        @foreach ($tenants as $tenant)
+                            <option value="{{ $tenant->id }}" @selected(old('tenant_id', $user->tenant_id) == $tenant->id)>{{ $tenant->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            @endif
+            <label class="block">
+                <span class="pos-label">Role</span>
+                <select name="role" class="pos-field mt-1.5">
+                    @foreach ($roles as $role)
+                        <option value="{{ $role }}" @selected(old('role', $user->role) === $role)>{{ str_replace('_', ' ', ucfirst($role)) }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <div class="pos-toggle-row">
+                <div><p class="pos-toggle-label">Account active</p></div>
+                <input type="hidden" name="is_active" value="0">
+                <input name="is_active" type="checkbox" value="1" @checked(old('is_active', $user->is_active ?? true)) class="h-5 w-5 rounded border-slate-300 text-brand-600">
             </div>
+        </div>
 
-            <button type="submit" class="mt-5 min-h-11 rounded bg-slate-950 px-4 py-2 font-bold text-white">Save user</button>
+        <button type="submit" class="pos-btn-primary mt-6">Save user</button>
+    </form>
+
+    @if ($user->exists)
+        <form method="POST" data-confirm="Reset this user's password?" data-loading-text="Resetting…" action="{{ $scope['platform'] ? route('platform.users.password', $user) : route('tenant.users.password', $user) }}" class="pos-card mt-6 p-6">
+            @csrf @method('PATCH')
+            <h2 class="font-bold text-slate-900">Reset password</h2>
+            <label class="mt-4 block">
+                <span class="pos-label">New password</span>
+                <input name="password" type="password" class="pos-field mt-1.5" required>
+            </label>
+            <button type="submit" class="pos-btn-dark mt-4">Reset password</button>
         </form>
-
-        @if ($user->exists)
-            <form method="POST" data-confirm="Reset this user's password?" data-loading-text="Resetting..." action="{{ $scope['platform'] ? route('platform.users.password', $user) : route('tenant.users.password', $user) }}" class="mt-4 rounded-lg border border-slate-300 bg-white p-4">
-                @csrf @method('PATCH')
-                <label class="block"><span class="font-bold">Reset password</span><input name="password" type="password" class="pos-field mt-1" required></label>
-                <button type="submit" class="mt-3 min-h-11 rounded bg-slate-800 px-4 py-2 font-bold text-white">Reset password</button>
-            </form>
-        @endif
-    </main>
-</body>
-</html>
+    @endif
+</div>
+@endsection

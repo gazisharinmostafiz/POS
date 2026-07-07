@@ -217,8 +217,12 @@ class BillingService
         $subtotal = round((float) $items->sum('line_total'), 2);
         $discountTotal = round((float) $orders->sum('discount_total'), 2);
         $discountedSubtotal = round(max(0, $subtotal - $discountTotal), 2);
-        $serviceChargePercent = (float) ($settings['service_charge_percent'] ?? 0);
-        $taxVatPercent = (float) ($settings['tax_vat_percent'] ?? 0);
+        $serviceChargePercent = ($settings['service_charge_enabled'] ?? true)
+            ? (float) ($settings['service_charge_percent'] ?? 0)
+            : 0;
+        $taxVatPercent = ($settings['tax_enabled'] ?? true)
+            ? (float) ($settings['tax_vat_percent'] ?? 0)
+            : 0;
         $serviceCharge = round($discountedSubtotal * ($serviceChargePercent / 100), 2);
         $taxVat = round($discountedSubtotal * ($taxVatPercent / 100), 2);
 

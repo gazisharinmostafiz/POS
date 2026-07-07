@@ -1,33 +1,579 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    html {
+        @apply scroll-smooth;
+    }
+
+    body {
+        @apply font-sans text-slate-900 antialiased;
+    }
+
+    body.pos-theme-light {
+        @apply bg-surface-subtle text-slate-900;
+    }
+
+    body.pos-theme-dark,
+    .pos-theme-dark body {
+        @apply bg-surface-dark-muted text-slate-100;
+    }
+
+    body.pos-theme-kitchen,
+    .pos-theme-kitchen body {
+        @apply bg-black text-white;
+    }
+}
+
 @layer components {
+    /* ── App shell ── */
+    .pos-app-shell {
+        @apply flex min-h-screen bg-inherit;
+    }
+
+    .pos-sidebar {
+        @apply fixed inset-y-0 left-0 z-40 flex w-[17.5rem] flex-col border-r border-slate-200/80 bg-white shadow-card;
+    }
+
+    body.pos-theme-dark .pos-sidebar,
+    .pos-theme-dark .pos-sidebar {
+        @apply border-slate-800/80 bg-surface-dark-elevated shadow-none;
+    }
+
+    body.pos-theme-kitchen .pos-sidebar,
+    .pos-theme-kitchen .pos-sidebar {
+        @apply border-slate-800 bg-slate-950 shadow-none;
+    }
+
+    .pos-app-main {
+        @apply ml-[17.5rem] min-h-screen flex-1;
+    }
+
+    @media (max-width: 1023px) {
+        .pos-sidebar {
+            @apply hidden;
+        }
+
+        .pos-app-main {
+            @apply ml-0 pb-[4.75rem];
+        }
+
+        .pos-mobile-nav {
+            @apply fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200/80 bg-white/95 px-1 py-1.5 backdrop-blur-lg lg:hidden;
+        }
+
+        body.pos-theme-dark .pos-mobile-nav,
+        .pos-theme-dark .pos-mobile-nav {
+            @apply border-slate-800/80 bg-surface-dark-elevated/95;
+        }
+
+        body.pos-theme-kitchen .pos-mobile-nav,
+        .pos-theme-kitchen .pos-mobile-nav {
+            @apply border-slate-800 bg-slate-950/95;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .pos-mobile-nav {
+            @apply hidden;
+        }
+    }
+
+    .pos-nav-link {
+        @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition duration-150 hover:bg-slate-100 hover:text-slate-900;
+    }
+
+    body.pos-theme-dark .pos-nav-link,
+    .pos-theme-dark .pos-nav-link {
+        @apply text-slate-400 hover:bg-slate-800/60 hover:text-white;
+    }
+
+    body.pos-theme-kitchen .pos-nav-link,
+    .pos-theme-kitchen .pos-nav-link {
+        @apply text-slate-400 hover:bg-slate-900 hover:text-white;
+    }
+
+    .pos-nav-link-active {
+        @apply bg-brand-600 text-white shadow-glow hover:bg-brand-600 hover:text-white;
+    }
+
+    body.pos-theme-kitchen .pos-nav-link-active,
+    .pos-theme-kitchen .pos-nav-link-active {
+        @apply bg-accent-500 text-white shadow-glow-accent hover:bg-accent-500 hover:text-white;
+    }
+
+    .pos-mobile-nav-link {
+        @apply flex flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 transition;
+    }
+
+    .pos-mobile-nav-link-active {
+        @apply bg-brand-50 text-brand-700;
+    }
+
+    body.pos-theme-dark .pos-mobile-nav-link-active,
+    .pos-theme-dark .pos-mobile-nav-link-active {
+        @apply bg-brand-950/50 text-brand-300;
+    }
+
+    body.pos-theme-kitchen .pos-mobile-nav-link-active,
+    .pos-theme-kitchen .pos-mobile-nav-link-active {
+        @apply bg-accent-950/40 text-accent-400;
+    }
+
+    /* ── Page layout ── */
+    .pos-page {
+        @apply animate-fade-in px-4 py-5 sm:px-6 lg:px-8 lg:py-6;
+    }
+
+    .pos-page-header {
+        @apply mb-6 flex flex-wrap items-start justify-between gap-4;
+    }
+
+    .pos-page-eyebrow {
+        @apply text-xs font-bold uppercase tracking-[0.2em] text-brand-600;
+    }
+
+    body.pos-theme-dark .pos-page-eyebrow,
+    .pos-theme-dark .pos-page-eyebrow {
+        @apply text-brand-400;
+    }
+
+    body.pos-theme-kitchen .pos-page-eyebrow,
+    .pos-theme-kitchen .pos-page-eyebrow {
+        @apply text-accent-400;
+    }
+
+    .pos-page-title {
+        @apply mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl;
+    }
+
+    body.pos-theme-dark .pos-page-title,
+    .pos-theme-dark .pos-page-title {
+        @apply text-white;
+    }
+
+    body.pos-theme-kitchen .pos-page-title,
+    .pos-theme-kitchen .pos-page-title {
+        @apply text-white;
+    }
+
+    .pos-page-subtitle {
+        @apply mt-1 text-sm text-slate-500;
+    }
+
+    body.pos-theme-dark .pos-page-subtitle,
+    .pos-theme-dark .pos-page-subtitle {
+        @apply text-slate-400;
+    }
+
+    /* ── Realtime badge ── */
+    .pos-live-badge {
+        @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm;
+    }
+
+    body.pos-theme-dark .pos-live-badge,
+    .pos-theme-dark .pos-live-badge {
+        @apply border-slate-700 bg-slate-900 text-slate-300;
+    }
+
+    body.pos-theme-kitchen .pos-live-badge,
+    .pos-theme-kitchen .pos-live-badge {
+        @apply border-slate-700 bg-slate-900 text-slate-300;
+    }
+
+    .pos-live-dot {
+        @apply h-2 w-2 rounded-full bg-emerald-500;
+    }
+
+    .pos-live-dot-polling {
+        @apply animate-pulse-soft bg-amber-400;
+    }
+
+    .pos-live-dot-offline {
+        @apply bg-slate-400;
+    }
+
+    /* ── Cards & surfaces ── */
     .pos-card {
-        @apply rounded-lg border border-slate-300 bg-white shadow-sm;
+        @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
+    }
+
+    body.pos-theme-dark .pos-card,
+    .pos-theme-dark .pos-card {
+        @apply border-slate-800/80 bg-surface-dark-card shadow-none;
+    }
+
+    body.pos-theme-kitchen .pos-card,
+    .pos-theme-kitchen .pos-card {
+        @apply border-slate-800 bg-slate-950 shadow-none;
+    }
+
+    .pos-card-header {
+        @apply flex items-center justify-between border-b border-slate-100 px-5 py-4;
+    }
+
+    body.pos-theme-dark .pos-card-header,
+    .pos-theme-dark .pos-card-header {
+        @apply border-slate-800;
+    }
+
+    .pos-card-body {
+        @apply p-5;
     }
 
     .pos-dark-card {
-        @apply rounded-lg border border-slate-800 bg-slate-900 shadow-sm;
+        @apply rounded-2xl border border-slate-800 bg-surface-dark-elevated shadow-card-lg;
     }
 
+    .pos-kpi-card {
+        @apply relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card transition duration-200 hover:shadow-card-md;
+    }
+
+    .pos-kpi-icon {
+        @apply flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600;
+    }
+
+    .pos-kpi-label {
+        @apply text-xs font-bold uppercase tracking-wider text-slate-500;
+    }
+
+    .pos-kpi-value {
+        @apply mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl;
+    }
+
+    .pos-kpi-meta {
+        @apply mt-1 text-xs font-medium text-slate-400;
+    }
+
+    /* ── Forms ── */
     .pos-field {
-        @apply min-h-11 w-full rounded border border-slate-300 px-3 py-2 text-base outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200;
+        @apply min-h-touch w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
     }
 
     .pos-field-dark {
-        @apply min-h-11 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-base text-white outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-950;
+        @apply min-h-touch w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-brand-400 focus:ring-2 focus:ring-brand-950;
     }
 
-    .pos-button {
-        @apply inline-flex min-h-11 items-center justify-center rounded px-4 py-2 font-bold transition disabled:cursor-not-allowed disabled:opacity-50;
+    .pos-label {
+        @apply block text-sm font-semibold text-slate-700;
     }
 
+    body.pos-theme-dark .pos-label,
+    .pos-theme-dark .pos-label {
+        @apply text-slate-300;
+    }
+
+    /* ── Buttons ── */
+    .pos-btn {
+        @apply inline-flex min-h-touch items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-150 disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    .pos-btn-primary {
+        @apply pos-btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:scale-[0.98];
+    }
+
+    .pos-btn-accent {
+        @apply pos-btn bg-accent-500 text-white shadow-sm hover:bg-accent-600 active:scale-[0.98];
+    }
+
+    .pos-btn-secondary {
+        @apply pos-btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
+    }
+
+    body.pos-theme-dark .pos-btn-secondary,
+    .pos-theme-dark .pos-btn-secondary {
+        @apply border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800;
+    }
+
+    .pos-btn-dark {
+        @apply pos-btn bg-slate-900 text-white hover:bg-slate-800;
+    }
+
+    .pos-btn-success {
+        @apply pos-btn bg-emerald-600 text-white hover:bg-emerald-700;
+    }
+
+    .pos-btn-danger {
+        @apply pos-btn border border-red-200 bg-red-50 text-red-700 hover:bg-red-100;
+    }
+
+    .pos-btn-ghost {
+        @apply pos-btn text-slate-600 hover:bg-slate-100;
+    }
+
+    body.pos-theme-dark .pos-btn-ghost,
+    .pos-theme-dark .pos-btn-ghost {
+        @apply text-slate-300 hover:bg-slate-800;
+    }
+
+    .pos-btn-touch {
+        @apply min-h-touch-lg rounded-2xl px-5 text-base font-bold;
+    }
+
+    .pos-btn-touch-xl {
+        @apply min-h-touch-xl rounded-2xl px-6 text-lg font-bold;
+    }
+
+    .pos-btn-tab {
+        @apply min-h-touch rounded-xl px-4 py-2.5 text-sm font-semibold transition;
+    }
+
+    .pos-btn-tab-active {
+        @apply bg-brand-600 text-white shadow-sm;
+    }
+
+    body.pos-theme-dark .pos-btn-tab-active,
+    .pos-theme-dark .pos-btn-tab-active {
+        @apply bg-brand-500;
+    }
+
+    body.pos-theme-kitchen .pos-btn-tab-active,
+    .pos-theme-kitchen .pos-btn-tab-active {
+        @apply bg-accent-500;
+    }
+
+    .pos-btn-tab-inactive {
+        @apply border border-slate-200 bg-white text-slate-600 hover:bg-slate-50;
+    }
+
+    body.pos-theme-dark .pos-btn-tab-inactive,
+    .pos-theme-dark .pos-btn-tab-inactive {
+        @apply border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800;
+    }
+
+    /* ── Status badges ── */
+    .pos-badge {
+        @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide;
+    }
+
+    .pos-badge-success {
+        @apply pos-badge bg-emerald-100 text-emerald-800;
+    }
+
+    .pos-badge-warning {
+        @apply pos-badge bg-amber-100 text-amber-900;
+    }
+
+    .pos-badge-danger {
+        @apply pos-badge bg-red-100 text-red-800;
+    }
+
+    .pos-badge-neutral {
+        @apply pos-badge bg-slate-100 text-slate-700;
+    }
+
+    body.pos-theme-dark .pos-badge-neutral,
+    .pos-theme-dark .pos-badge-neutral {
+        @apply bg-slate-800 text-slate-300;
+    }
+
+    /* ── Tables ── */
+    .pos-table-wrap {
+        @apply overflow-x-auto rounded-xl border border-slate-200/80;
+    }
+
+    .pos-table {
+        @apply w-full text-left text-sm;
+    }
+
+    .pos-table thead {
+        @apply border-b border-slate-200 bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500;
+    }
+
+    .pos-table th {
+        @apply px-4 py-3.5;
+    }
+
+    .pos-table td {
+        @apply border-b border-slate-100 px-4 py-3.5;
+    }
+
+    .pos-table tbody tr {
+        @apply transition hover:bg-slate-50/80;
+    }
+
+    .pos-table-row-selected {
+        @apply bg-brand-50 hover:bg-brand-50;
+    }
+
+    /* ── Empty states ── */
     .pos-empty {
-        @apply rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-500;
+        @apply rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500;
     }
 
     .pos-empty-dark {
-        @apply rounded-lg border border-dashed border-slate-700 bg-slate-950 p-6 text-center text-slate-400;
+        @apply rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-10 text-center text-sm text-slate-400;
+    }
+
+    /* ── Alerts ── */
+    .pos-alert {
+        @apply flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium;
+    }
+
+    .pos-alert-success {
+        @apply pos-alert border-emerald-200 bg-emerald-50 text-emerald-800;
+    }
+
+    .pos-alert-error {
+        @apply pos-alert border-red-200 bg-red-50 text-red-800;
+    }
+
+    .pos-alert-info {
+        @apply pos-alert border-brand-200 bg-brand-50 text-brand-800;
+    }
+
+    body.pos-theme-dark .pos-alert-success,
+    .pos-theme-dark .pos-alert-success {
+        @apply border-emerald-800/60 bg-emerald-950/40 text-emerald-200;
+    }
+
+    body.pos-theme-dark .pos-alert-error,
+    .pos-theme-dark .pos-alert-error {
+        @apply border-red-800/60 bg-red-950/40 text-red-200;
+    }
+
+    body.pos-theme-dark .pos-alert-info,
+    .pos-theme-dark .pos-alert-info {
+        @apply border-brand-800/60 bg-brand-950/40 text-brand-200;
+    }
+
+    /* ── Waiter POS ── */
+    .pos-waiter-layout {
+        @apply grid gap-5 xl:grid-cols-[16rem_1fr_22rem];
+    }
+
+    .pos-table-btn {
+        @apply min-h-[5.5rem] rounded-2xl border-2 p-3 text-left transition duration-150 active:scale-[0.98];
+    }
+
+    .pos-table-btn-active {
+        @apply border-brand-400 bg-brand-950/50 shadow-glow;
+    }
+
+    .pos-table-btn-idle {
+        @apply border-slate-800 bg-slate-950/60 hover:border-slate-600;
+    }
+
+    .pos-menu-item {
+        @apply relative flex min-h-[9rem] flex-col rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 to-slate-900 p-4 text-left transition duration-150 hover:border-brand-400/60 hover:shadow-glow active:scale-[0.98];
+    }
+
+    .pos-menu-item-add {
+        @apply absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-500 text-xl font-bold text-white opacity-0 shadow-glow-accent transition group-hover:opacity-100;
+    }
+
+    .pos-cart-panel {
+        @apply pos-dark-card flex flex-col;
+    }
+
+    .pos-cart-line {
+        @apply rounded-xl border border-slate-800 bg-slate-950/80 p-3;
+    }
+
+    /* ── Kitchen display ── */
+    .pos-kitchen-board {
+        @apply grid gap-4 xl:grid-cols-3;
+    }
+
+    .pos-kitchen-column {
+        @apply flex min-h-[72vh] flex-col rounded-2xl border-2 border-slate-800 bg-slate-950 p-4;
+    }
+
+    .pos-kitchen-column-header {
+        @apply mb-4 flex items-center justify-between border-b border-slate-800 pb-3;
+    }
+
+    .pos-kitchen-ticket {
+        @apply rounded-2xl border-2 border-slate-700 bg-slate-900 p-5 shadow-card-lg transition duration-150 hover:border-accent-400/40;
+    }
+
+    .pos-kitchen-ticket-urgent {
+        @apply border-red-500 bg-red-950/30;
+    }
+
+    .pos-kitchen-item {
+        @apply rounded-xl bg-black/60 p-3;
+    }
+
+    /* ── Counter billing ── */
+    .pos-counter-layout {
+        @apply grid gap-5 xl:grid-cols-[1fr_24rem];
+    }
+
+    .pos-order-row {
+        @apply cursor-pointer transition hover:bg-brand-50/60;
+    }
+
+    .pos-bill-panel {
+        @apply pos-card sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col overflow-hidden;
+    }
+
+    .pos-bill-scroll {
+        @apply flex-1 overflow-y-auto pos-scroll;
+    }
+
+    .pos-payment-key {
+        @apply min-h-touch-lg rounded-xl border border-slate-200 bg-white text-lg font-bold transition hover:bg-slate-50 active:scale-95;
+    }
+
+    /* ── Admin dashboard ── */
+    .pos-filter-bar {
+        @apply pos-card p-5;
+    }
+
+    .pos-chart-bar {
+        @apply rounded-md bg-brand-500 transition-all duration-500;
+    }
+
+    .pos-stat-grid {
+        @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .pos-report-grid {
+        @apply grid gap-6 xl:grid-cols-2;
+    }
+
+    /* ── Login ── */
+    .pos-login-hero {
+        @apply relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950;
+    }
+
+    .pos-login-card {
+        @apply w-full max-w-md rounded-3xl border border-slate-800 bg-slate-950/90 p-8 shadow-card-xl backdrop-blur;
+    }
+
+    /* ── Scrollbar ── */
+    .pos-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(148 163 184 / 0.4) transparent;
+    }
+
+    .pos-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .pos-scroll::-webkit-scrollbar-thumb {
+        @apply rounded-full bg-slate-300;
+    }
+
+    /* ── Admin settings ── */
+    .pos-toggle-row {
+        @apply flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3;
+    }
+
+    .pos-toggle-label {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .pos-toggle-hint {
+        @apply text-xs text-slate-500;
+    }
+
+    .pos-section-title {
+        @apply text-sm font-bold uppercase tracking-wider text-slate-500;
     }
 }
